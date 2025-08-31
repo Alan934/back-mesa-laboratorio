@@ -28,7 +28,7 @@ public class AdminUserController {
     @PostMapping
     public ResponseEntity<UserDto> create(@Valid @RequestBody UserCreateRequest request, UriComponentsBuilder uriBuilder) {
         UserDto created = userService.create(request);
-        return ResponseEntity.created(uriBuilder.path("/api/admin/users/{id}").buildAndExpand(created.id()).toUri())
+        return ResponseEntity.created(uriBuilder.path("/api/admin/users/{id}").buildAndExpand(created.getId()).toUri())
                 .body(created);
     }
 

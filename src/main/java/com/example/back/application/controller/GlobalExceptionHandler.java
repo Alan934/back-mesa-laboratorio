@@ -26,6 +26,10 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.transaction.TransactionSystemException;
+
 // Manejador global de excepciones para respuestas consistentes de la API
 @ControllerAdvice
 public class GlobalExceptionHandler {
@@ -89,6 +93,30 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, Object>> handleConflict(DataIntegrityViolationException ex, HttpServletRequest req) {
         // No exponer detalles de la base de datos al cliente
         return build(req, HttpStatus.CONFLICT, "Data integrity violation");
+    }
+
+    // Unwrap de validaciones JPA -> 400
+    @ExceptionHandler(TransactionSystemException.class)
+    public ResponseEntity<Map<String, Object>> handleTxSystem(TransactionSystemException ex, HttpServletRequest req) {
+        Throwable cause = ex.getMostSpecificCause();
+        if (cause instanceof ConstraintViolationException cve) {
+            String message = cve.getConstraintViolations().stream()
+                    .map(ConstraintViolation::getMessage)
+                    .collect(Collectors.joining(", "));
+            return build(req, HttpStatus.BAD_REQUEST, message.isBlank() ? "Validation error" : message);
+        }
+        return build(req, HttpStatus.INTERNAL_SERVER_ERROR, "Unexpected error");
+    }
+
+    // Mapear errores de seguridad de método (@PreAuthorize) a 403/401 en vez de 500
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<Map<String, Object>> handleAccessDenied(AccessDeniedException ex, HttpServletRequest req) {
+        return build(req, HttpStatus.FORBIDDEN, "Forbidden");
+    }
+
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<Map<String, Object>> handleAuthentication(AuthenticationException ex, HttpServletRequest req) {
+        return build(req, HttpStatus.UNAUTHORIZED, "Unauthorized");
     }
 
     @ExceptionHandler(ResponseStatusException.class)

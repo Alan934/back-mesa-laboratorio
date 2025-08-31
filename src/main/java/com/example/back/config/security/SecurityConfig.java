@@ -16,6 +16,7 @@ import org.springframework.security.oauth2.core.OAuth2TokenValidator;
 import org.springframework.security.oauth2.core.OAuth2TokenValidatorResult;
 import org.springframework.security.oauth2.jwt.*;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
 
 @Configuration
 @EnableMethodSecurity
@@ -30,14 +31,17 @@ public class SecurityConfig {
     private final Converter<Jwt, ? extends AbstractAuthenticationToken> jwtAuthConverter;
     private final RestAuthenticationEntryPoint authenticationEntryPoint;
     private final RestAccessDeniedHandler accessDeniedHandler;
+    private final ProvisionUserFilter provisionUserFilter;
 
     public SecurityConfig(JwtAuthenticationConverter jwtAuthenticationConverter,
                           RestAuthenticationEntryPoint authenticationEntryPoint,
-                          RestAccessDeniedHandler accessDeniedHandler) {
+                          RestAccessDeniedHandler accessDeniedHandler,
+                          ProvisionUserFilter provisionUserFilter) {
         // Inyectamos nuestro converter y handlers personalizados
         this.jwtAuthConverter = jwtAuthenticationConverter;
         this.authenticationEntryPoint = authenticationEntryPoint;
         this.accessDeniedHandler = accessDeniedHandler;
+        this.provisionUserFilter = provisionUserFilter;
     }
 
     // Cadena de filtros de seguridad
@@ -65,7 +69,9 @@ public class SecurityConfig {
                                 .jwtAuthenticationConverter(jwtAuthConverter)
                                 .decoder(jwtDecoder())
                         )
-                );
+                )
+                // Ejecutar nuestro filtro después de la autenticación por bearer token
+                .addFilterAfter(provisionUserFilter, BearerTokenAuthenticationFilter.class);
         return http.build();
     }
 

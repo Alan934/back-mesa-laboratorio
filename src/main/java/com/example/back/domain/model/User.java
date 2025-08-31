@@ -31,6 +31,15 @@ public class User extends BaseEntity {
     @Column(name = "last_name", length = 100)
     private String lastName;
 
+    @Column(name = "dni", length = 50)
+    private String dni;
+
+    @Column(name = "phone", length = 30)
+    private String phone;
+
+    @Column(name = "profession", length = 100)
+    private String profession;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "role", nullable = false, length = 20)
     private Role role = Role.CLIENT; // Por defecto cliente

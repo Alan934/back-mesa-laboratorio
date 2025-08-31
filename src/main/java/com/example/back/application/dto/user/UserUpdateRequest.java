@@ -10,5 +10,8 @@ public record UserUpdateRequest(
         @Email String email,
         @Size(max = 100) String firstName,
         @Size(max = 100) String lastName,
+        @Size(max = 50) String dni,
+        @Size(max = 30) String phone,
+        @Size(max = 100) String profession,
         @NotNull Role role
 ) {}

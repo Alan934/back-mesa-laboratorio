@@ -5,18 +5,26 @@ import com.example.back.domain.model.Role;
 import com.example.back.domain.model.User;
 import com.example.back.domain.repository.UserRepository;
 import jakarta.transaction.Transactional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpStatus;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 @Transactional
 public class CurrentUserServiceImpl implements CurrentUserService {
+
+    private static final Logger log = LoggerFactory.getLogger(CurrentUserServiceImpl.class);
 
     private final UserRepository userRepository;
 
@@ -33,6 +41,9 @@ public class CurrentUserServiceImpl implements CurrentUserService {
         String familyName = Optional.ofNullable(jwt.getClaimAsString("family_name")).orElse(null);
 
         Role resolved = resolveRoleFromAuthorities();
+        if (log.isDebugEnabled()) {
+            log.debug("Provisioning current user. sub={}, email={}, role={}", sub, email, resolved);
+        }
 
         // Primero intentamos por auth0UserId (sub)
         Optional<User> bySub = userRepository.findByAuth0UserId(sub);
@@ -60,11 +71,21 @@ public class CurrentUserServiceImpl implements CurrentUserService {
         // Creamos el usuario con rol segun autoridades
         User user = new User();
         user.setAuth0UserId(sub);
-        user.setEmail(email);
+        // Fallback de email si no viene en el access token (p.ej., Auth0 no incluye email en AT)
+        user.setEmail(email != null ? email : generateFallbackEmail(sub));
         user.setFirstName(givenName);
         user.setLastName(familyName);
         user.setRole(resolved);
         return userRepository.save(user);
+    }
+
+    private String generateFallbackEmail(String sub) {
+        // Genera un local-part seguro sustituyendo caracteres no válidos y limitando longitud
+        String local = sub == null ? "user" : sub.replaceAll("[^A-Za-z0-9._%+-]", "_");
+        if (local.length() > 64) {
+            local = local.substring(0, 64);
+        }
+        return local + "@auth0.local";
     }
 
     private Role resolveRoleFromAuthorities() {
@@ -81,6 +102,7 @@ public class CurrentUserServiceImpl implements CurrentUserService {
         if (auth instanceof JwtAuthenticationToken token) {
             return token.getToken();
         }
-        throw new IllegalStateException("JWT authentication is required");
+        // Responder 401 en vez de provocar 500 por IllegalStateException
+        throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized");
     }
 }
