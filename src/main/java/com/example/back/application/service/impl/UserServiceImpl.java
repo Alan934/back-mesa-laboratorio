@@ -2,8 +2,10 @@ package com.example.back.application.service.impl;
 
 import com.example.back.application.dto.user.UserCreateRequest;
 import com.example.back.application.dto.user.UserDto;
+import com.example.back.application.dto.user.UserSelfUpdateRequest;
 import com.example.back.application.dto.user.UserUpdateRequest;
 import com.example.back.application.mapper.UserMapper;
+import com.example.back.application.service.CurrentUserService;
 import com.example.back.application.service.UserService;
 import com.example.back.domain.exception.NotFoundException;
 import com.example.back.domain.model.Profession;
@@ -25,10 +27,12 @@ public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
     private final ProfessionRepository professionRepository;
+    private final CurrentUserService currentUserService;
 
-    public UserServiceImpl(UserRepository userRepository, ProfessionRepository professionRepository) {
+    public UserServiceImpl(UserRepository userRepository, ProfessionRepository professionRepository, CurrentUserService currentUserService) {
         this.userRepository = userRepository;
         this.professionRepository = professionRepository;
+        this.currentUserService = currentUserService;
     }
 
     @Override
@@ -139,6 +143,30 @@ public class UserServiceImpl implements UserService {
             user.setRole(request.role());
         }
         return UserMapper.toDto(user);
+    }
+
+    @Override
+    public UserDto updateCurrent(UserSelfUpdateRequest request) {
+        User me = currentUserService.getOrCreateCurrentUser();
+        // DNI uniqueness if changed
+        if (request.getDni() != null && (me.getDni() == null || !request.getDni().equalsIgnoreCase(me.getDni()))) {
+            userRepository.findByDni(request.getDni()).ifPresent(existing -> {
+                if (!existing.getId().equals(me.getId())) {
+                    throw new DataIntegrityViolationException("DNI already exists");
+                }
+            });
+            me.setDni(request.getDni());
+        }
+        if (request.getFirstName() != null) me.setFirstName(request.getFirstName());
+        if (request.getLastName() != null) me.setLastName(request.getLastName());
+        if (request.getPhone() != null) me.setPhone(request.getPhone());
+
+        if (me.getRole() == Role.PRACTITIONER) {
+            if (request.getProfessionId() != null || (request.getProfession() != null && !request.getProfession().isBlank())) {
+                me.setProfession(resolveProfessionOrThrow(request.getProfessionId(), request.getProfession()));
+            }
+        }
+        return UserMapper.toDto(me);
     }
 
     @Override

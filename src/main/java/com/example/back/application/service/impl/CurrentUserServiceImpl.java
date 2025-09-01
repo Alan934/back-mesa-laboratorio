@@ -45,7 +45,7 @@ public class CurrentUserServiceImpl implements CurrentUserService {
             log.debug("Provisioning current user. sub={}, email={}, role={}", sub, email, resolved);
         }
 
-        // Primero intentamos por auth0UserId (sub)
+        // Primero por auth0UserId (sub)
         Optional<User> bySub = userRepository.findByAuth0UserId(sub);
         if (bySub.isPresent()) {
             User u = bySub.get();
@@ -56,7 +56,7 @@ public class CurrentUserServiceImpl implements CurrentUserService {
             if (u.getRole() != resolved) u.setRole(resolved);
             return u; // JPA sincroniza por @Transactional
         }
-        // Si no existe y hay email, intentamos por email
+        // Si no existe y hay email
         if (email != null) {
             Optional<User> byEmail = userRepository.findByEmail(email);
             if (byEmail.isPresent()) {
@@ -68,7 +68,7 @@ public class CurrentUserServiceImpl implements CurrentUserService {
                 return u;
             }
         }
-        // Creamos el usuario con rol segun autoridades
+        // Crear el usuario
         User user = new User();
         user.setAuth0UserId(sub);
         // Fallback de email si no viene en el access token (p.ej., Auth0 no incluye email en AT)
@@ -102,7 +102,6 @@ public class CurrentUserServiceImpl implements CurrentUserService {
         if (auth instanceof JwtAuthenticationToken token) {
             return token.getToken();
         }
-        // Responder 401 en vez de provocar 500 por IllegalStateException
         throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized");
     }
 }

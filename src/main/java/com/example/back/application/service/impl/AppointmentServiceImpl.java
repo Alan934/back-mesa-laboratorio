@@ -4,6 +4,7 @@ import com.example.back.application.dto.appointment.AppointmentCreateRequest;
 import com.example.back.application.dto.appointment.AppointmentDto;
 import com.example.back.application.service.AppointmentService;
 import com.example.back.application.service.CurrentUserService;
+import com.example.back.application.service.ScheduleService;
 import com.example.back.domain.exception.NotFoundException;
 import com.example.back.domain.model.*;
 import com.example.back.domain.repository.AppointmentRepository;
@@ -23,11 +24,13 @@ public class AppointmentServiceImpl implements AppointmentService {
     private final AppointmentRepository appointmentRepository;
     private final CurrentUserService currentUserService;
     private final UserRepository userRepository;
+    private final ScheduleService scheduleService;
 
-    public AppointmentServiceImpl(AppointmentRepository appointmentRepository, CurrentUserService currentUserService, UserRepository userRepository) {
+    public AppointmentServiceImpl(AppointmentRepository appointmentRepository, CurrentUserService currentUserService, UserRepository userRepository, ScheduleService scheduleService) {
         this.appointmentRepository = appointmentRepository;
         this.currentUserService = currentUserService;
         this.userRepository = userRepository;
+        this.scheduleService = scheduleService;
     }
 
     @Override
@@ -50,6 +53,10 @@ public class AppointmentServiceImpl implements AppointmentService {
         }
         if (appointmentRepository.existsOverlappingForPractitioner(practitioner, start, end)) {
             throw new IllegalArgumentException("Overlapping appointment for the practitioner");
+        }
+        // Validate working hours
+        if (!scheduleService.isWithinWorkingHours(practitioner.getId(), start, end)) {
+            throw new IllegalArgumentException("Appointment is outside practitioner's working hours");
         }
 
         Appointment a = new Appointment();
