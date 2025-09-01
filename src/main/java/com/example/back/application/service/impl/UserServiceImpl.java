@@ -6,8 +6,10 @@ import com.example.back.application.dto.user.UserUpdateRequest;
 import com.example.back.application.mapper.UserMapper;
 import com.example.back.application.service.UserService;
 import com.example.back.domain.exception.NotFoundException;
+import com.example.back.domain.model.Profession;
 import com.example.back.domain.model.Role;
 import com.example.back.domain.model.User;
+import com.example.back.domain.repository.ProfessionRepository;
 import com.example.back.domain.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -22,9 +24,11 @@ import java.util.stream.Collectors;
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
+    private final ProfessionRepository professionRepository;
 
-    public UserServiceImpl(UserRepository userRepository) {
+    public UserServiceImpl(UserRepository userRepository, ProfessionRepository professionRepository) {
         this.userRepository = userRepository;
+        this.professionRepository = professionRepository;
     }
 
     @Override
@@ -35,12 +39,13 @@ public class UserServiceImpl implements UserService {
         }
         // Unicidad de DNI si viene informado
         if (request.dni() != null && !request.dni().isBlank()) {
-            userRepository.findByDni(request.dni()).ifPresent(existing -> {
+            if (userRepository.findByDni(request.dni()).isPresent()) {
                 throw new DataIntegrityViolationException("DNI already exists");
-            });
+            }
         }
-        if (request.role() == Role.PRACTITIONER && (request.profession() == null || request.profession().isBlank())) {
-            throw new IllegalArgumentException("Profession is required for practitioners");
+        Profession profession = null;
+        if (request.role() == Role.PRACTITIONER) {
+            profession = resolveProfessionOrThrow(request.professionId(), request.profession());
         }
         User user = new User();
         user.setEmail(request.email());
@@ -48,10 +53,26 @@ public class UserServiceImpl implements UserService {
         user.setLastName(request.lastName());
         user.setDni(request.dni());
         user.setPhone(request.phone());
-        user.setProfession(request.profession());
+        user.setProfession(profession);
         user.setRole(request.role());
         user = userRepository.save(user);
         return UserMapper.toDto(user);
+    }
+
+    private Profession resolveProfessionOrThrow(UUID professionId, String professionName) {
+        if (professionId != null) {
+            return professionRepository.findById(professionId)
+                    .orElseThrow(() -> new NotFoundException("Profession not found"));
+        }
+        if (professionName != null && !professionName.isBlank()) {
+            return professionRepository.findByNameIgnoreCase(professionName)
+                    .orElseGet(() -> {
+                        Profession p = new Profession();
+                        p.setName(professionName.trim());
+                        return professionRepository.save(p);
+                    });
+        }
+        throw new IllegalArgumentException("Profession is required for practitioners");
     }
 
     @Override
@@ -71,6 +92,12 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    public List<UserDto> listPractitionersByProfessionId(UUID professionId) {
+        return userRepository.findByRoleAndProfession_Id(Role.PRACTITIONER, professionId)
+                .stream().map(UserMapper::toDto).collect(Collectors.toList());
+    }
+
+    @Override
     public UserDto update(UUID id, UserUpdateRequest request) {
         User user = userRepository.findById(id).orElseThrow(() -> new NotFoundException("User not found"));
         if (request.email() != null && !request.email().equalsIgnoreCase(user.getEmail())) {
@@ -82,24 +109,35 @@ public class UserServiceImpl implements UserService {
             user.setEmail(request.email());
         }
         if (request.dni() != null && (user.getDni() == null || !request.dni().equalsIgnoreCase(user.getDni()))) {
-            userRepository.findByDni(request.dni()).ifPresent(existing -> {
+            if (userRepository.findByDni(request.dni()).isPresent()) {
+                var existing = userRepository.findByDni(request.dni()).get();
                 if (!existing.getId().equals(id)) {
                     throw new DataIntegrityViolationException("DNI already exists");
                 }
-            });
-            user.setDni(request.dni());
-        }
-        if (request.role() != null && request.role() == Role.PRACTITIONER) {
-            String profession = request.profession() != null ? request.profession() : user.getProfession();
-            if (profession == null || profession.isBlank()) {
-                throw new IllegalArgumentException("Profession is required for practitioners");
             }
+            user.setDni(request.dni());
         }
         if (request.firstName() != null) user.setFirstName(request.firstName());
         if (request.lastName() != null) user.setLastName(request.lastName());
         if (request.phone() != null) user.setPhone(request.phone());
-        if (request.profession() != null) user.setProfession(request.profession());
-        if (request.role() != null) user.setRole(request.role());
+
+        // Profesión
+        if (request.professionId() != null || (request.profession() != null && !request.profession().isBlank())) {
+            user.setProfession(resolveProfessionOrThrow(request.professionId(), request.profession()));
+        }
+
+        // Rol
+        if (request.role() != null) {
+            if (request.role() == Role.PRACTITIONER) {
+                // Verificar que el practitioner tenga profesión
+                Profession current = user.getProfession();
+                if (current == null) {
+                    // Intentar resolver con datos de request si vinieron, si no, error
+                    user.setProfession(resolveProfessionOrThrow(request.professionId(), request.profession()));
+                }
+            }
+            user.setRole(request.role());
+        }
         return UserMapper.toDto(user);
     }
 

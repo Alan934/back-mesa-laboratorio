@@ -6,6 +6,8 @@ import com.example.back.domain.model.User;
 // Mapper simple para convertir entidades User a DTOs
 public class UserMapper {
     public static UserDto toDto(User user) {
+        String professionName = user.getProfession() != null ? user.getProfession().getName() : null;
+        java.util.UUID professionId = user.getProfession() != null ? user.getProfession().getId() : null;
         return new UserDto(
                 user.getId(),
                 user.getAuth0UserId(),
@@ -14,7 +16,8 @@ public class UserMapper {
                 user.getLastName(),
                 user.getDni(),
                 user.getPhone(),
-                user.getProfession(),
+                professionName,
+                professionId,
                 user.getRole()
         );
     }

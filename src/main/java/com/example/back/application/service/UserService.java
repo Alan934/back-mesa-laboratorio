@@ -18,6 +18,7 @@ public interface UserService {
     // Listar todos o por rol
     List<UserDto> listAll();
     List<UserDto> listByRole(Role role);
+    List<UserDto> listPractitionersByProfessionId(UUID professionId);
 
     // Actualizar usuario (solo ADMIN)
     UserDto update(UUID id, UserUpdateRequest request);

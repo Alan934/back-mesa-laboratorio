@@ -6,11 +6,10 @@ import com.example.back.application.service.CurrentUserService;
 import com.example.back.application.service.UserService;
 import com.example.back.domain.model.Role;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/users")
@@ -33,7 +32,10 @@ public class UserController {
 
     @GetMapping("/practitioners")
     @PreAuthorize("hasAnyRole('CLIENT','PRACTITIONER','ADMIN')")
-    public List<UserDto> listPractitioners() {
+    public List<UserDto> listPractitioners(@RequestParam(value = "professionId", required = false) UUID professionId) {
+        if (professionId != null) {
+            return userService.listPractitionersByProfessionId(professionId);
+        }
         return userService.listByRole(Role.PRACTITIONER);
     }
 }

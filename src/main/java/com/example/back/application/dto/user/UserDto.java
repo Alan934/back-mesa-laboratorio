@@ -17,6 +17,7 @@ public class UserDto {
     private String lastName;
     private String dni;
     private String phone;
-    private String profession;
+    private String profession; // nombre
+    private UUID professionId; // id de la profesión
     private Role role;
 }

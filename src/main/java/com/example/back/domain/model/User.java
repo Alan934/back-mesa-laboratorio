@@ -37,8 +37,9 @@ public class User extends BaseEntity {
     @Column(name = "phone", length = 30)
     private String phone;
 
-    @Column(name = "profession", length = 100)
-    private String profession;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "profession_id")
+    private Profession profession;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "role", nullable = false, length = 20)
