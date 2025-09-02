@@ -21,4 +21,10 @@ public interface AppointmentService {
 
     // ADMIN: cancelar
     AppointmentDto cancel(UUID appointmentId);
+
+    // PRACTITIONER: aprobar uno propio
+    AppointmentDto approveMine(UUID appointmentId);
+
+    // PRACTITIONER: cancelar/rechazar uno propio
+    AppointmentDto cancelMine(UUID appointmentId);
 }

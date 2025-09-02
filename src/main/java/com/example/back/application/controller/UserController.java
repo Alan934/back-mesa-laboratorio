@@ -27,7 +27,9 @@ public class UserController {
     @GetMapping("/me")
     @PreAuthorize("hasAnyRole('CLIENT','PRACTITIONER','ADMIN')")
     public UserDto me() {
-        return UserMapper.toDto(currentUserService.getOrCreateCurrentUser());
+        var me = currentUserService.getOrCreateCurrentUser();
+        // Delegar el mapeo al servicio transaccional para evitar LazyInitializationException
+        return userService.getById(me.getId());
     }
 
     @GetMapping("/practitioners")

@@ -99,6 +99,34 @@ public class AppointmentServiceImpl implements AppointmentService {
         return toDto(a);
     }
 
+    @Override
+    public AppointmentDto approveMine(UUID appointmentId) {
+        User me = currentUserService.getOrCreateCurrentUser();
+        if (me.getRole() != Role.PRACTITIONER) {
+            throw new IllegalArgumentException("Only practitioners can approve their own appointments");
+        }
+        Appointment a = getByIdOrThrow(appointmentId);
+        if (a.getPractitioner() == null || !a.getPractitioner().getId().equals(me.getId())) {
+            throw new IllegalArgumentException("Appointment does not belong to current practitioner");
+        }
+        a.setStatus(AppointmentStatus.APPROVED);
+        return toDto(a);
+    }
+
+    @Override
+    public AppointmentDto cancelMine(UUID appointmentId) {
+        User me = currentUserService.getOrCreateCurrentUser();
+        if (me.getRole() != Role.PRACTITIONER) {
+            throw new IllegalArgumentException("Only practitioners can cancel their own appointments");
+        }
+        Appointment a = getByIdOrThrow(appointmentId);
+        if (a.getPractitioner() == null || !a.getPractitioner().getId().equals(me.getId())) {
+            throw new IllegalArgumentException("Appointment does not belong to current practitioner");
+        }
+        a.setStatus(AppointmentStatus.CANCELED);
+        return toDto(a);
+    }
+
     private void validateTimes(LocalDateTime start, LocalDateTime end) {
         if (start == null || end == null || !end.isAfter(start)) {
             throw new IllegalArgumentException("Invalid time range");
