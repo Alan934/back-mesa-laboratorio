@@ -138,14 +138,24 @@ public class AppointmentServiceImpl implements AppointmentService {
     }
 
     private AppointmentDto toDto(Appointment a) {
+        String clientName;
+        if (a.getClient() != null) {
+            String fn = a.getClient().getFirstName();
+            String ln = a.getClient().getLastName();
+            String full = ((fn != null ? fn : "") + " " + (ln != null ? ln : "")).trim();
+            clientName = full.isEmpty() ? a.getClient().getEmail() : full;
+        } else {
+            clientName = null;
+        }
         return new AppointmentDto(
                 a.getId(),
-                a.getClient().getId(),
+                a.getClient() != null ? a.getClient().getId() : null,
                 a.getPractitioner() != null ? a.getPractitioner().getId() : null,
                 a.getStartAt(),
                 a.getEndAt(),
                 a.getStatus(),
-                a.getDescription()
+                a.getDescription(),
+                clientName
         );
     }
 }

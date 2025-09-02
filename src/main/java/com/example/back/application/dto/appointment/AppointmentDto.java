@@ -22,4 +22,6 @@ public class AppointmentDto {
     private LocalDateTime endAt;
     private AppointmentStatus status;
     private String description;
+    // Nombre del cliente para mostrar ("Nombre Apellido" o email si no hay nombre)
+    private String clientName;
 }
