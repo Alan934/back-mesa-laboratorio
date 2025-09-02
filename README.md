@@ -1,4 +1,4 @@
-# Mesa - Backend (Spring Boot)
+# Turnerito - Backend (Spring Boot)
 
 Aplicación backend para gestión de turnos (API REST) protegida con Auth0. Incluye usuarios (admin, practitioner, client), turnos y agenda de profesionales.
 
@@ -15,14 +15,14 @@ Crear un archivo .env en back/ con las siguientes claves:
 
 ```
 # Database
-DATABASE_URL=jdbc:postgresql://ep-summer-firefly-adpc33tg-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require
-DATABASE_USERNAME=neondb_owner
-DATABASE_PASSWORD=npg_Sn6eQKaUm7PH
+DATABASE_URL=
+DATABASE_USERNAME=
+DATABASE_PASSWORD=
 
 # Auth0 Resource Server (API)
-AUTH0_ISSUER_URI=https://dev-kp2jou788uuzf6qp.us.auth0.com/
-AUTH0_AUDIENCE=https://mesa-api
-AUTH0_ROLES_CLAIM=https://mesa/roles
+AUTH0_ISSUER_URI=
+AUTH0_AUDIENCE=
+AUTH0_ROLES_CLAIM=
 
 # CORS origin for the frontend
 FRONTEND_ORIGIN=http://localhost:3000
@@ -37,7 +37,7 @@ Notas:
 1) Posicionarse en la carpeta back/.
 2) Crear/ajustar el archivo .env con las variables anteriores.
 3) Iniciar la API:
-   - Windows: mvnw.cmd spring-boot:run
+   - Windows (CMD): mvnw.cmd spring-boot:run
    - Linux/Mac: ./mvnw spring-boot:run
 4) La API quedará disponible en http://localhost:8080
    - Health check: GET /actuator/health
